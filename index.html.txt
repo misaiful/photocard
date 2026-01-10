@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <title>Photocard Generator</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.3.1/dist/css/bootstrap.min.css">
+
+    <style>
+        :root {
+            --title-size: 48px;
+            --title-color: #ffffff;
+            --design-color: #ffffff;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background: #eef2f5;
+            font-family: 'Hind Siliguri', 'SolaimanLipi', sans-serif; /* Changed to Google Font for Web Compatibility */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px 0;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        /* --- PREVIEW WRAPPER (Mobile Scaling) --- */
+        #preview_area {
+            width: 800px;
+            height: 800px;
+            position: relative;
+            margin-bottom: 20px;
+            transform-origin: top center;
+            display: flex;
+            justify-content: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1); /* Added shadow for better visibility */
+        }
+
+        /* --- THE 1:1 FRAME --- */
+        #photocard_wrapper {
+            width: 800px !important;
+            height: 800px !important;
+            min-width: 800px !important;
+            min-height: 800px !important;
+            flex-shrink: 0; 
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            background-color: var(--design-color);
+            transition: background-image 0.3s;
+        }
+
+        /* Background Patterns */
+        .pattern-grid {
+            background-image: 
+                url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='2' cy='2' r='1.5' fill='%23333333' fill-opacity='0.5'/%3E%3C/svg%3E"),
+                linear-gradient(to right, rgba(0,0,0,0.1) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(0,0,0,0.1) 1px, transparent 1px);
+            background-size: 20px 20px, 30px 30px, 30px 30px;
+            background-repeat: repeat;
+        }
+
+        .pattern-dots {
+            background-image: url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='2' cy='2' r='1.5' fill='%23333333'/%3E%3C/svg%3E");
+            background-repeat: repeat;
+        }
+
+        .pattern-none {
+            background-image: none;
+        }
+
+        /* --- CUSTOM BG LAYER --- */
+        .custom_bg_layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-size: cover;
+            background-position: center;
+            z-index: 1; 
+            pointer-events: none;
+            opacity: 1;
+        }
+
+        /* --- Z-INDEX STACKING --- */
+        .outer_border { z-index: 50; }
+        .header_section { z-index: 20; position: relative; }
+        .photocard_thumbnail { z-index: 10; position: relative; }
+        .photocard_title_area { z-index: 10; position: relative; }
+        .photocard_footer { z-index: 20; position: relative; }
+
+        /* --- THE BLACK BORDER FRAME --- */
+        .outer_border {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            bottom: 20px;
+            border: 2.5px solid #000;
+            border-radius: 25px;
+            pointer-events: none;
+        }
+
+        .photocard_title_area, 
+        .photocard_footer,
+        .header_section,
+        .photocard_thumbnail,
+        .photocard_date, 
+        .photocard_logo img {
+            background-color: transparent !important;
+        }
+
+        /* --- HEADER --- */
+        .header_section {
+            height: 100px; 
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 30px 60px 0px 60px;
+            background: rgba(255,255,255,0.0); 
+        }
+
+        .photocard_date {
+            border: 1.5px solid #000;
+            padding: 5px 15px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            background: #fff;
+            white-space: nowrap;
+        }
+
+        .photocard_logo img {
+            height: 55px;
+            width: auto;
+            display: block;
+        }
+
+        /* --- IMAGE AREA --- */
+        .photocard_thumbnail {
+            height: 414px; 
+            width: 710px; 
+            margin: 0 auto;
+            overflow: hidden; 
+            position: relative; 
+            border-radius: 5px;
+            border: 4px solid rgba(0,0,0,0.1);
+            background: #f0f0f0;
+            flex-shrink: 0; 
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .photocard_thumbnail img.main-thumb {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: center top;
+            display: block;
+        }
+        
+        /* Placeholder styling */
+        .thumb-placeholder {
+            color: #aaa;
+            font-size: 20px;
+            text-align: center;
+        }
+
+        .thumbnail_overlay_logo {
+            position: absolute;
+            bottom: 25px;                
+            right: 55px;                  
+            z-index: 60;                  
+        }
+
+        .thumbnail_overlay_logo img {
+            width: auto !important;       
+            height: 35px !important;      
+            object-fit: contain !important;  
+            display: inline-block;
+            max-width: none !important;  
+            opacity: 0.5;
+            border: 0;
+        }
+
+        /* --- TITLE AREA --- */
+        .photocard_title_area {
+            height: 200px; 
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px 6px 20px 6px;
+            text-align: center;
+            overflow: hidden;
+            background: linear-gradient(to top, var(--design-color) 0%, transparent 100);
+        }
+
+        .photocard_title {
+            font-size: var(--title-size);
+            color: var(--title-color);
+            font-weight: 600;
+            line-height: 1.3;
+            margin: 0;
+            display: -webkit-box;
+            -webkit-line-clamp: 2; 
+            -webkit-box-orient: vertical;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+            /* Allow user editing directly on text for ease */
+            outline: none;
+        }
+
+        /* --- FOOTER --- */
+        .photocard_footer {
+            height: 70px;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 60px 17px 60px;
+            background: #fff;
+            margin-top: auto; 
+        }
+
+        .footer_left { font-weight: 450; font-size: 17px; color: var(--title-color) !important; text-shadow: 0.5px 0.5px 0px rgba(0,0,0,0.1);}
+
+        .footer_center span { 
+            background-color: var(--design-color) !important; 
+            color: #000; 
+            padding: 5px 20px; 
+            border-radius: 5px; 
+            font-size: 22px;
+            font-weight: 700;
+            border: 1px solid rgba(0,0,0,0.1);
+            filter: brightness(0.95); 
+            white-space: nowrap;
+        }
+        .footer_right { font-weight: 450; font-size: 17px; color: var(--title-color) !important; text-shadow: 0.5px 0.5px 0px rgba(0,0,0,0.1);}
+
+
+        /* --- CONTROLS --- */
+        .controller_card {
+            background: #fff;
+            width: 90%;
+            max-width: 600px;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            z-index: 100;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 700;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+            margin-top: 10px;
+            color: #333;
+        }
+
+        .control_label { display: block; font-weight: 600; margin-bottom: 8px; font-size: 15px; color: #555; }
+        
+        .form-control { margin-bottom: 15px; font-size: 14px; }
+        .custom-file-label { overflow: hidden; }
+
+        .range_slider {
+            width: 100%;
+            height: 10px;
+            background: #007bff;
+            border-radius: 5px;
+            appearance: none;
+            margin-bottom: 30px;
+        }
+        .range_slider::-webkit-slider-thumb {
+            appearance: none;
+            width: 24px; height: 24px;
+            background: #007bff;
+            border: 4px solid #fff;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .color_grid {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .color_box {
+            width: 100%;
+            aspect-ratio: 1;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid #ddd;
+            transition: transform 0.1s;
+        }
+        .color_box:hover { transform: scale(1.1); border-color: #555; }
+
+        .btn_download {
+            width: 100%; 
+            background: #d32f2f;
+            color: #fff;
+            border: none;
+            padding: 18px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-family: 'Hind Siliguri', Arial, sans-serif;
+            font-weight: 600;
+            font-size: 18px;
+            display: flex; 
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 8px 20px rgba(211, 47, 47, 0.3);
+            margin-top: 20px;
+            transition: background 0.2s;
+        }
+        .btn_download:hover { background: #b71c1c; }
+
+    </style>
+</head>
+<body>
+
+<div id="preview_area">
+    <div id="photocard_wrapper" class="pattern-grid">
+        
+        <div class="custom_bg_layer" id="customBgLayer"></div>
+
+        <div class="outer_border"></div>
+
+        <div class="header_section">
+            <div class="photocard_date" id="displayDate">
+                <i class="fa-solid fa-calendar-days" style="margin-right: 8px;"></i>
+                <span id="dateText">শনিবার, ১১ জানুয়ারি ২০২৬</span>
+            </div>
+            <div class="photocard_logo">
+                <img id="mainLogo" src="https://via.placeholder.com/150x55?text=LOGO" alt="Logo">
+            </div>
+        </div>
+
+        <div class="photocard_thumbnail">
+            <img id="mainThumb" src="https://via.placeholder.com/710x414?text=Upload+Image" class="main-thumb" alt="thumbnail" crossorigin="anonymous">
+            <div class="thumbnail_overlay_logo">
+                <img id="overlayLogo" src="https://via.placeholder.com/150x55?text=LOGO" alt="Logo" crossorigin="anonymous">
+            </div>
+        </div>
+        
+        <div class="photocard_title_area">
+            <h1 class="photocard_title" id="displayTitle">এখানে আপনার শিরোনাম লিখুন</h1>
+        </div>
+
+        <div class="photocard_footer">
+            <div class="footer_left"><i class="fa-solid fa-globe"></i> <span id="displayDomain">example.com</span></div>
+            <div class="footer_center"><span>বিস্তারিত কমেন্টে</span></div> 
+            <div class="footer_right">
+                <i class="fa-brands fa-facebook"></i> <span id="displayFooterRight">তারুণ্যের সংবাদ মাধ্যম</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="controller_card">
+    
+    <div class="section-title">তথ্য সেটিংস (Content)</div>
+
+    <div class="form-group">
+        <label class="control_label">শিরোনাম (Title)</label>
+        <input type="text" class="form-control" id="inpTitle" placeholder="শিরোনাম লিখুন..." oninput="updateText('displayTitle', this.value)">
+    </div>
+
+    <div class="row">
+        <div class="col-6">
+            <label class="control_label">তারিখ (Date)</label>
+            <input type="text" class="form-control" id="inpDate" value="শনিবার, ১১ জানুয়ারি ২০২৬" oninput="document.getElementById('dateText').innerText = this.value">
+        </div>
+        <div class="col-6">
+            <label class="control_label">ওয়েবসাইট (Domain)</label>
+            <input type="text" class="form-control" id="inpDomain" value="example.com" oninput="document.getElementById('displayDomain').innerText = this.value">
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label class="control_label">ফুটার টেক্সট (Footer Right)</label>
+        <input type="text" class="form-control" id="inpFooterRight" value="তারুণ্যের সংবাদ মাধ্যম" oninput="document.getElementById('displayFooterRight').innerText = this.value">
+    </div>
+
+    <div class="section-title">ছবি আপলোড (Images)</div>
+
+    <div class="form-group">
+        <label class="control_label">প্রধান ছবি (Thumbnail)</label>
+        <div class="custom-file">
+            <input type="file" class="custom-file-input" id="fileThumb" accept="image/*" onchange="loadImage(this, 'mainThumb')">
+            <label class="custom-file-label" for="fileThumb">ছবি নির্বাচন করুন...</label>
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label class="control_label">লোগো (Logo)</label>
+        <div class="custom-file">
+            <input type="file" class="custom-file-input" id="fileLogo" accept="image/*" onchange="loadLogo(this)">
+            <label class="custom-file-label" for="fileLogo">লোগো নির্বাচন করুন...</label>
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label class="control_label">ব্যাকগ্রাউন্ড ছবি (ঐচ্ছিক)</label>
+        <div class="custom-file">
+            <input type="file" class="custom-file-input" id="fileBg" accept="image/*" onchange="loadBg(this)">
+            <label class="custom-file-label" for="fileBg">ব্যাকগ্রাউন্ড নির্বাচন করুন...</label>
+        </div>
+    </div>
+
+    <div class="section-title">ডিজাইন সেটিংস (Design)</div>
+
+    <label class="control_label">প্যাটার্ন স্টাইল</label>
+    <select class="form-control" onchange="setPattern(this.value)">
+        <option value="grid" selected>গ্রিড (Grid)</option>
+        <option value="dots">ডটস (Dots)</option>
+        <option value="none">খালি (None)</option>
+    </select>
+
+    <label class="control_label">ফন্ট সাইজ: <span id="fontSizeDisplay">48px</span></label>
+    <input type="range" class="range_slider" id="sizeInp" min="20" max="80" value="48">
+
+    <label class="control_label">শিরোনামের রং</label>
+    <div class="color_grid">
+        <div class="color_box" style="background:#000000;" onclick="setTitleColor('#000000')"></div>
+        <div class="color_box" style="background:#B71C1C;" onclick="setTitleColor('#B71C1C')"></div>
+        <div class="color_box" style="background:#0D47A1;" onclick="setTitleColor('#0D47A1')"></div>
+        <div class="color_box" style="background:#1B5E20;" onclick="setTitleColor('#1B5E20')"></div>
+        <div class="color_box" style="background:#4A148C;" onclick="setTitleColor('#4A148C')"></div>
+        <div class="color_box" style="background:#FFFFFF; border:1px solid #ccc;" onclick="setTitleColor('#FFFFFF')"></div>
+        <div class="color_box" style="background:#FFEB3B;" onclick="setTitleColor('#FFEB3B')"></div>
+        <div class="color_box" style="background:#00E5FF;" onclick="setTitleColor('#00E5FF')"></div>
+        <div class="color_box" style="background:#6c757d;" onclick="setTitleColor('#6c757d')"></div>
+        <div class="color_box" style="background:#FAEB7B;" onclick="setTitleColor('#FAEB7B')"></div>
+    </div>
+
+    <label class="control_label">ডিজাইন/ব্যাকগ্রাউন্ড কালার</label>
+    <div class="color_grid">
+        <div class="color_box" style="background:#FFFFFF; border:1px solid #ccc;" onclick="setDesignColor('#FFFFFF')"></div>
+        <div class="color_box" style="background:#E3F2FD;" onclick="setDesignColor('#E3F2FD')"></div>
+        <div class="color_box" style="background:#FCE4EC;" onclick="setDesignColor('#FCE4EC')"></div>
+        <div class="color_box" style="background:#E8F5E9;" onclick="setDesignColor('#E8F5E9')"></div>
+        <div class="color_box" style="background:#F3E5F5;" onclick="setDesignColor('#F3E5F5')"></div>
+        <div class="color_box" style="background:#FFF8E1;" onclick="setDesignColor('#FFF8E1')"></div>
+        <div class="color_box" style="background:#F5F5F5;" onclick="setDesignColor('#F5F5F5')"></div>
+        <div class="color_box" style="background:#FFF0E0;" onclick="setDesignColor('#FFF0E0')"></div>
+        <div class="color_box" style="background:#F0FFF4;" onclick="setDesignColor('#F0FFF4')"></div>
+        <div class="color_box" style="background:#FFFDE7;" onclick="setDesignColor('#FFFDE7')"></div>
+    </div>
+
+    <div class="button_row">
+        <button class="btn_download" onclick="downloadImage()">
+            <i class="fa-solid fa-floppy-disk" style="margin-right: 10px;"></i> ডাউনলোড
+        </button>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+<script>
+const root = document.documentElement;
+const previewArea = document.getElementById('preview_area');
+const wrapper = document.getElementById('photocard_wrapper');
+
+// --- AUTO SET DATE ---
+const today = new Date();
+const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+// Try to format in Bengali if browser supports, else fallback
+try {
+    const bnDate = today.toLocaleDateString('bn-BD', options);
+    document.getElementById('inpDate').value = bnDate;
+    document.getElementById('dateText').innerText = bnDate;
+} catch (e) {
+    // Fallback logic handled in HTML value
+}
+
+
+// --- SCALE LOGIC ---
+function scaleCard() {
+    const windowWidth = window.innerWidth;
+    const cardSize = 800;
+    const padding = 20;
+
+    if (windowWidth < (cardSize + padding)) {
+        const scale = (windowWidth - padding) / cardSize;
+        previewArea.style.transform = `scale(${scale})`;
+        
+        // Fix the empty space below caused by scaling
+        const heightGap = cardSize - (cardSize * scale);
+        previewArea.style.marginBottom = `-${heightGap}px`;
+    } else {
+        previewArea.style.transform = 'scale(1)';
+        previewArea.style.marginBottom = '20px';
+    }
+}
+
+window.addEventListener('resize', scaleCard);
+window.addEventListener('load', scaleCard);
+
+// --- CONTROL LOGIC ---
+
+// Text Updates
+function updateText(id, value) {
+    document.getElementById(id).innerText = value ? value : '...';
+}
+
+// Slider
+document.getElementById('sizeInp').oninput = (e) => {
+    root.style.setProperty('--title-size', e.target.value + 'px');
+    document.getElementById('fontSizeDisplay').innerText = e.target.value + 'px';
+};
+
+// Colors
+function setTitleColor(color) { root.style.setProperty('--title-color', color); }
+function setDesignColor(color) { root.style.setProperty('--design-color', color); }
+
+// Pattern
+function setPattern(val) {
+    wrapper.classList.remove('pattern-grid', 'pattern-dots', 'pattern-none');
+    wrapper.classList.add('pattern-' + val);
+}
+
+// --- IMAGE UPLOAD LOGIC ---
+function readFile(input, callback) {
+    if (input.files && input.files[0]) {
+        var reader = new FileReader();
+        reader.onload = function (e) {
+            callback(e.target.result);
+        }
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+
+function loadImage(input, targetId) {
+    readFile(input, (src) => {
+        document.getElementById(targetId).src = src;
+        // Update label
+        input.nextElementSibling.innerText = input.files[0].name;
+    });
+}
+
+function loadLogo(input) {
+    readFile(input, (src) => {
+        document.getElementById('mainLogo').src = src;
+        document.getElementById('overlayLogo').src = src;
+        input.nextElementSibling.innerText = input.files[0].name;
+    });
+}
+
+function loadBg(input) {
+    readFile(input, (src) => {
+        document.getElementById('customBgLayer').style.backgroundImage = `url('${src}')`;
+        input.nextElementSibling.innerText = input.files[0].name;
+    });
+}
+
+// --- DOWNLOAD LOGIC ---
+function downloadImage() {
+    const el = document.getElementById('photocard_wrapper');
+    const btn = document.querySelector('.btn_download');
+    
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> ডাউনলোড হচ্ছে...';
+    btn.style.pointerEvents = 'none';
+    btn.style.opacity = '0.7';
+
+    // Need to wait a split second for styles to settle if something just changed
+    setTimeout(() => {
+        html2canvas(el, {
+            scale: 2, 
+            useCORS: true, 
+            allowTaint: true,
+            backgroundColor: null,
+            width: 800,
+            height: 800,
+            onclone: (clonedDoc) => {
+                const clonedWrapper = clonedDoc.getElementById('photocard_wrapper');
+                const clonedPreview = clonedDoc.getElementById('preview_area');
+                
+                // Reset transformations for the screenshot
+                if(clonedPreview) {
+                    clonedPreview.style.transform = 'none';
+                    clonedPreview.style.margin = '0';
+                }
+                
+                if (clonedWrapper) {
+                    clonedWrapper.style.transform = 'none';
+                }
+            }
+        }).then(canvas => {
+            const link = document.createElement('a');
+            const title = document.getElementById('inpTitle').value || 'photocard';
+            // Sanitize filename
+            const cleanTitle = title.replace(/[^a-z0-9\u0980-\u09FF]/gi, '_').substring(0, 20);
+            
+            link.download = cleanTitle + '.png';
+            link.href = canvas.toDataURL('image/png', 1.0);
+            link.click();
+            
+            btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> ডাউনলোড';
+            btn.style.pointerEvents = 'auto';
+            btn.style.opacity = '1';
+        }).catch(err => {
+            console.error("Error:", err);
+            alert("দুঃখিত, ডাউনলোড করতে সমস্যা হয়েছে। ব্রাউজার পরিবর্তন করে দেখুন।");
+            btn.innerHTML = '<i class="fa-solid fa-floppy-disk"> </i> ডাউনলোড';
+            btn.style.pointerEvents = 'auto';
+            btn.style.opacity = '1';
+        });
+    }, 100);
+}
+</script>
+</body>
+</html>
